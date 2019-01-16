@@ -52,6 +52,7 @@ def ComputeRainfallErosivity(fname, full_write=True, delimiter=",", dformat="%Y-
     df = calculate_I30(df, dt)
 
     "calculate EI30"
+    fname  = os.path.split(fname)[-1]
     fname = fname[0:fname.index(".")]
     df = calculate_R(df, dt, full_write=full_write, fname=os.path.join("Results", fname))
 
