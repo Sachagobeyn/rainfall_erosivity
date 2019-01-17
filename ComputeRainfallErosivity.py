@@ -10,7 +10,7 @@ import os
 import datetime
 
 #2014-01-01 00:00:00
-def ComputeRainfallErosivity(fname, full_write=True, delimiter=",", dformat="%Y-%m-%d %H:%M:%S"):
+def ComputeRainfallErosivity(fname, full_write=True, delimiter=",", dformat="%Y-%m-%d %H:%M:%S",test_flag=False):
     """ Script to compute rainfall erosivity factor R
     Calculations based on formula's reported in
     Panagos, P., Ballabio, C., Borrelli, P., Meusburger, K., Klik, A., Rousseva, S., … Alewell, C., 2015, Rainfall erosivity in Europe. Science of the Total Environment, 511, 801–814.
@@ -43,7 +43,7 @@ def ComputeRainfallErosivity(fname, full_write=True, delimiter=",", dformat="%Y-
     create_dir("Results", [""])
 
     "load and format df"
-    df, dt = load_and_format_input_file(fname, delimiter, dformat)
+    df, dt = load_and_format_input_file(fname, delimiter, dformat, test_flag = test_flag)
 
     "identify erosive storms"
     df = identify_erosive_storms(df, dt)
@@ -175,13 +175,13 @@ def calculate_R(df, dt, full_write=True, fname="test"):
     "calculate EI30 per storm (what with storm which go over year?"
     df["year"] = df["timestamp"].dt.year
     df["ervr"] = df["er"] * df["vr"]
-    df = df.groupby(["year", "stormid"]).aggregate({"ervr": np.nansum, "I30": np.nanmax}).reset_index()
+    df = df.groupby(["year", "stormid"]).aggregate({"ervr": np.nansum, "I30": np.nanmax,"timestamp":np.max}).reset_index()
+
+    df["EI30"] = df["ervr"] * df["I30"]
 
     "write EI30 per storm"
     if full_write == True:
         df.to_csv(os.path.join(fname + "-EI30.csv"))
-
-    df["EI30"] = df["ervr"] * df["I30"]
 
     "sum up EI30 over year"
     df = df.groupby("year").aggregate({"EI30": np.nansum}).reset_index()
@@ -198,7 +198,7 @@ def calculate_R(df, dt, full_write=True, fname="test"):
     return df
 
 
-def load_and_format_input_file(fname, delimiter, dformat):
+def load_and_format_input_file(fname, delimiter, dformat,test_flag=False):
     """ Load and format input file
 
     Parameters
@@ -227,7 +227,15 @@ def load_and_format_input_file(fname, delimiter, dformat):
     """
     df = load_df(fname, delimiter, dformat)
 
-    df, dt = format_df(df)
+    #(SG) only work on part of the data
+    if test_flag == True:
+        if len(df) < test_flag:
+            ind = len(df)
+        else:
+            ind = 1000
+    else:
+        ind = len(df)
+    df, dt = format_df(df.iloc[0:ind])
 
     return df, dt
 
@@ -286,9 +294,9 @@ def format_df(df):
     "get deltat"
     dt = df["timestamp"].diff().values[1].astype('timedelta64[s]').astype(int)
     "precipitation volume per time step (mm)"
-    df["N"] = df["value"].values
+    df.loc[:,"N"] = df["value"].values
     "precipitation intensity (mm/h)"
-    df["Ni"] = df["N"] / dt * 3600
+    df.loc[:,"Ni"] = df["N"] / dt * 3600
 
     return df, dt
 
