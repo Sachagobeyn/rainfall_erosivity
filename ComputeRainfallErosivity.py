@@ -8,6 +8,8 @@ import pandas as pd
 import numpy as np
 import os
 import datetime
+from copy import deepcopy
+
 
 #2014-01-01 00:00:00
 def ComputeRainfallErosivity(fname, full_write=True, delimiter=",", dformat="%Y-%m-%d %H:%M:%S",test_flag=False):
@@ -235,7 +237,9 @@ def load_and_format_input_file(fname, delimiter, dformat,test_flag=False):
             ind = 1000
     else:
         ind = len(df)
-    df, dt = format_df(df.iloc[0:ind])
+
+    df = df.iloc[0:ind]
+    df, dt = format_df(df)
 
     return df, dt
 
